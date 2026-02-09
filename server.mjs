@@ -52,9 +52,34 @@ app.post('/upload', authenticate, upload.single('file'), (req, res) => {
     });
 });
 
+// Rota DELETE para apagar um arquivo pelo nome
+app.delete('/uploads/:filename', authenticate, (req, res) => {
+  const filename = req.params.filename;
+
+  // Segurança básica: bloqueia tentativa de path traversal
+  if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+  }
+
+  const filePath = path.join('/app/uploads', filename);
+
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        return res.status(404).json({ error: 'Arquivo não encontrado.' });
+      }
+      return res.status(500).json({ error: 'Falha ao deletar arquivo.' });
+    }
+
+    return res.json({ ok: true, deleted: filename });
+  });
+});
+
+
 // Servir os arquivos estáticos (para poder baixar depois)
 app.use('/uploads', express.static('/app/uploads'));
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
+
 });
